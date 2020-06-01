@@ -1,5 +1,8 @@
 <img src=http://storage.mds.yandex.net/get-devtools-opensource/250854/catboost-logo.png width=300/>
 
+To Run Stochastic Gradient Langevin Dynamics specify --langevin True --diffusion-temperature <value> --model-shrink-rate <value> (corresponds to \beta and \gamma).
+For Smooth Loss Approximation (SLA) specify --loss-function UserPerObjMetric:alpha=0.1 (alpha corresponds to \varsigma)
+
 [Website](https://catboost.ai) |
 [Documentation](https://catboost.ai/docs/) |
 [Tutorials](https://catboost.ai/docs/concepts/tutorials.html) |
