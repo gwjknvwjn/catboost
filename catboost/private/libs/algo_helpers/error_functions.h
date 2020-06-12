@@ -858,6 +858,11 @@ public:
     {
         CB_ENSURE(isExpApprox == false, "Approx format does not match");
     }
+        double CalcDer(double approx, float target) const override {
+        double sigm = std::expl(approx / Alpha) / (1.0 + std::expl(approx / Alpha));
+        return (1 - 2 * int(target > 1e-3)) * sigm * (1 - sigm) / Alpha;
+    }
+    double CalcDer2(double, float) const override { return -1; }
 };
 
 class TUserDefinedQuerywiseError final : public IDerCalcer {
