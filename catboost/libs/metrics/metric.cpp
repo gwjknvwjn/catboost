@@ -3958,19 +3958,57 @@ TUserDefinedPerObjectMetric::TUserDefinedPerObjectMetric(const TLossParams& para
     UseWeights.MakeIgnored();
 }
 
-TMetricHolder TUserDefinedPerObjectMetric::Eval(
-    const TVector<TVector<double>>& /*approx*/,
-    TConstArrayRef<float> /*target*/,
-    TConstArrayRef<float> /*weight*/,
-    TConstArrayRef<TQueryInfo> /*queriesInfo*/,
-    int /*begin*/,
-    int /*end*/,
-    NPar::TLocalExecutor& /*executor*/
-) const {
-    CB_ENSURE(false, "Not implemented for TUserDefinedPerObjectMetric metric.");
-    TMetricHolder metric(2);
-    return metric;
-}
+  TMetricHolder TUserDefinedPerObjectMetric::Eval(
+      const TVector<TVector<double>>& approx,
+      TConstArrayRef<float> target,
+      TConstArrayRef<float> weight,
+      TConstArrayRef<TQueryInfo> /*queriesInfo*/,
+      int begin,
+      int end,
+      NPar::TLocalExecutor& /*executor*/
+  ) const {
+      CB_ENSURE(approx.size() == 1, "Metric NumErrors supports only single-dimensional data");
+      const auto& approxVec = approx.front();
+      TMetricHolder error(2);
+      for (int k = begin; k < end; ++k) {
+          float w = weight.empty() ? 1 : weight[k];
+          int label = int(target[k] > 1e-3);
+          long double score = std::expl(-approxVec[k] / Alpha * (2 * label - 1));
+          long double sigm = 1.0 / (1.0 + score);
+          error.Stats[0] += sigm * w;
+          error.Stats[1] += w;
+      }
+
+      return error;
+  }
+  TMetricHolder TUserDefinedPerObjectMetric::Eval(
+      const TVector<TVector<double>>& approx,
+      const TVector<TVector<double>>& approxDelta,
+      bool /*isExpApprox*/,
+      TConstArrayRef<float> target,
+      TConstArrayRef<float> weight,
+      TConstArrayRef<TQueryInfo> /*queriesInfo*/,
+      int begin,
+      int end,
+      NPar::TLocalExecutor& /*executor*/
+  ) const {
+      CB_ENSURE(approx.size() == 1, "Metric NumErrors supports only single-dimensional data");
+
+      const auto& approxVec = approx.front();
+      TMetricHolder error(2);
+      for (int k = begin; k < end; ++k) {
+          float w = weight.empty() ? 1 : weight[k];
+          double approx = (approxVec[k] + (approxDelta.empty() ? 0.0 : approxDelta[0][k]));
+          int label = int(target[k] > 1e-3);
+          long double score = std::expl(-approx / Alpha * (2 * label - 1));
+          long double sigm = 1.0 / (1.0 + score);
+          error.Stats[0] += sigm * w;
+          error.Stats[1] += w;
+      }
+
+      return error;
+  }
+
 
 void TUserDefinedPerObjectMetric::GetBestValue(EMetricBestValue* valueType, float*) const {
     *valueType = EMetricBestValue::Min;
